@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Digit Recognizer</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background: #1a1a2e;
+            color: #e0e0e0;
+            font-family: 'Courier New', monospace;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Panels */
+        .panel {
+            background: #16213e;
+            border: 0.5px solid #0f3460;
+            border-radius: 8px;
+            padding: 16px;
+        }
+
+        .panel-title {
+            font-size: 10px;
+            color: #00b4d8;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 16px;
+        }
+
+        /* Layout */
+        #app {
+            display: flex;
+            gap: 16px;
+            padding: 16px;
+            width: 100%;
+        }
+
+        #left-panel {
+            width: 220px;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            overflow-y: auto;
+        }
+
+        #center-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+        }
+
+        #right-panel {
+            width: 220px;
+            flex-shrink: 0;
+        }
+
+        /* Buttons */
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 8px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-family: 'Courier New', monospace;
+            text-align: center;
+            margin-bottom: 8px;
+            border: 0.5px solid;
+            cursor: pointer;
+            background: transparent;
+        }
+
+        .btn-green { border-color: #06d6a0; color: #06d6a0; }
+        .btn-green:hover { background: rgba(6,214,160,0.08); }
+        .btn-blue { border-color: #00b4d8; color: #00b4d8; }
+        .btn-blue:hover { background: rgba(0,180,216,0.08); }
+        .btn-red { border-color: #e63946; color: #e63946; }
+        .btn-red:hover { background: rgba(230,57,70,0.08); }
+        .btn-gray { border-color: #444; color: #888; }
+        .btn-gray:hover { background: rgba(255,255,255,0.04); }
+        .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        /* Stats */
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 12px;
+        }
+
+        .stat-label { color: #888; }
+        .stat-value { color: #00b4d8; }
+
+        /* Progress bar */
+        .progress-bar {
+            background: #0f3460;
+            border-radius: 4px;
+            height: 4px;
+            margin-bottom: 12px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            background: #00b4d8;
+            height: 100%;
+            width: 0%;
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+
+        /* Log */
+        .log {
+            font-size: 10px;
+            color: #444;
+            max-height: 80px;
+            overflow-y: auto;
+        }
+
+        .log-line { margin-bottom: 3px; }
+        .log-line.active { color: #00b4d8; }
+
+        /* Settings */
+        .settings-toggle {
+            font-size: 10px;
+            color: #888;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-top: 0.5px solid #0f3460;
+        }
+
+        .settings-toggle:hover { color: #00b4d8; }
+
+        .settings-content {
+            display: none;
+            padding-top: 12px;
+        }
+
+        .settings-content.open { display: block; }
+
+        .settings-group {
+            font-size: 10px;
+            color: #00b4d8;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            margin-top: 12px;
+        }
+
+        .setting-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .setting-label { font-size: 11px; color: #888; }
+
+        .setting-input {
+            background: #0f3460;
+            border: 0.5px solid #0f3460;
+            color: #e0e0e0;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            padding: 3px 6px;
+            border-radius: 4px;
+            width: 80px;
+            text-align: right;
+        }
+
+        .setting-input:focus {
+            outline: none;
+            border-color: #00b4d8;
+        }
+
+        /* Canvas */
+        #canvas {
+            background: #000;
+            border: 0.5px solid #0f3460;
+            border-radius: 6px;
+            cursor: crosshair;
+        }
+
+        /* Brush slider */
+        .brush-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 11px;
+            color: #888;
+            width: 280px;
+        }
+
+        input[type=range] {
+            flex: 1;
+            accent-color: #00b4d8;
+        }
+
+        /* Prediction */
+        .prediction-big {
+            font-size: 72px;
+            color: #06d6a0;
+            font-weight: 500;
+            text-align: center;
+            margin: 8px 0;
+            line-height: 1;
+        }
+
+        .confidence {
+            font-size: 11px;
+            color: #888;
+            text-align: center;
+            margin-bottom: 16px;
+        }
+
+        /* Probability bars */
+        .bar-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 5px;
+        }
+
+        .bar-label { font-size: 11px; color: #888; width: 12px; text-align: right; }
+
+        .bar-track {
+            flex: 1;
+            background: #0f3460;
+            border-radius: 2px;
+            height: 8px;
+            overflow: hidden;
+        }
+
+        .bar-fill {
+            height: 100%;
+            border-radius: 2px;
+            background: #00b4d8;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .bar-fill.top { background: #06d6a0; }
+        .bar-pct { font-size: 11px; color: #888; width: 36px; text-align: right; }
+    </style>
+</head>
+<body>
+<div id="app">
+
+    <!-- Left Panel -->
+    <div id="left-panel">
+        <div class="panel">
+            <div class="panel-title">Training</div>
+            <button class="btn btn-green" id="btn-fresh" onclick="startFresh()">Start fresh</button>
+            <button class="btn btn-blue" id="btn-load" onclick="loadWeights()">Load weights</button>
+            <button class="btn btn-red" id="btn-stop" onclick="stopTraining()" disabled>Stop</button>
+
+            <div style="margin-top: 12px;">
+                <div class="stat-row">
+                    <span class="stat-label">Epoch</span>
+                    <span class="stat-value" id="stat-epoch">-- / --</span>
+                </div>
+                <div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
+                <div class="stat-row">
+                    <span class="stat-label">Cost</span>
+                    <span class="stat-value" id="stat-cost">--</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Train acc</span>
+                    <span class="stat-value" id="stat-train-acc">--</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Test acc</span>
+                    <span class="stat-value" id="stat-test-acc">--</span>
+                </div>
+            </div>
+
+            <div class="log" id="log"></div>
+        </div>
+
+        <!-- Settings -->
+        <div class="panel">
+            <div class="settings-toggle" onclick="toggleSettings()">
+                <span>Settings</span>
+                <span id="settings-arrow">+</span>
+            </div>
+            <div class="settings-content" id="settings-content">
+                <div class="settings-group">Training</div>
+                <div class="setting-row">
+                    <span class="setting-label">Epochs</span>
+                    <input class="setting-input" type="number" id="s-epochs" value="75" min="1">
+                </div>
+                <div class="setting-row">
+                    <span class="setting-label">Batch size</span>
+                    <input class="setting-input" type="number" id="s-batch" value="64" min="1">
+                </div>
+                <div class="setting-row">
+                    <span class="setting-label">Alpha</span>
+                    <input class="setting-input" type="number" id="s-alpha" value="0.1" step="0.01">
+                </div>
+                <div class="setting-row">
+                    <span class="setting-label">Decay rate</span>
+                    <input class="setting-input" type="number" id="s-decay" value="0.99" step="0.01">
+                </div>
+                <div class="setting-row">
+                    <span class="setting-label">Dropout</span>
+                    <input class="setting-input" type="number" id="s-dropout" value="0.2" step="0.01">
+                </div>
+
+                <div class="settings-group">Architecture</div>
+                <div class="setting-row">
+                    <span class="setting-label">Hidden layers</span>
+                    <input class="setting-input" type="number" id="s-layers" value="3" min="1" max="6">
+                </div>
+                <div id="neuron-inputs">
+                    <div class="setting-row">
+                        <span class="setting-label">Layer 1 neurons</span>
+                        <input class="setting-input" type="number" id="s-n1" value="256">
+                    </div>
+                    <div class="setting-row">
+                        <span class="setting-label">Layer 2 neurons</span>
+                        <input class="setting-input" type="number" id="s-n2" value="128">
+                    </div>
+                    <div class="setting-row">
+                        <span class="setting-label">Layer 3 neurons</span>
+                        <input class="setting-input" type="number" id="s-n3" value="64">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Center Panel -->
+    <div id="center-panel">
+        <div class="panel" style="width: 100%; text-align: center;">
+            <div class="panel-title">Draw a digit</div>
+            <canvas id="canvas" width="280" height="280"></canvas>
+            <div class="brush-row" style="margin: 12px auto 0;">
+                <span>brush</span>
+                <input type="range" min="1" max="4" value="2" id="brush-size">
+                <span id="brush-label">2</span>
+            </div>
+            <div style="display: flex; gap: 8px; margin-top: 12px;">
+                <button class="btn btn-green" style="flex:1;" onclick="predict()">Predict</button>
+                <button class="btn btn-gray" style="flex:1;" onclick="clearCanvas()">Clear</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Panel -->
+    <div id="right-panel">
+        <div class="panel">
+            <div class="panel-title">Prediction</div>
+            <div class="prediction-big" id="pred-digit">?</div>
+            <div class="confidence" id="pred-confidence">Draw a digit and click predict</div>
+            <div id="prob-bars"></div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    // Allows training to be stopped
+    async function stopTraining() {
+    await fetch('/stop', { method: 'POST' });
+    setTrainingState(false);
+    addLog('Training stopped.');
+}
+    // Initialize probability bars
+    const barsContainer = document.getElementById('prob-bars');
+    for (let i = 0; i < 10; i++) {
+        barsContainer.innerHTML += `
+            <div class="bar-row">
+                <span class="bar-label">${i}</span>
+                <div class="bar-track">
+                    <div class="bar-fill" id="bar-${i}"></div>
+                </div>
+                <span class="bar-pct" id="pct-${i}">0%</span>
+            </div>`;
+    }
+
+    // Canvas setup
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    let isDrawing = false;
+    let brushSize = 2;
+
+    document.getElementById('brush-size').addEventListener('input', function() {
+        brushSize = parseInt(this.value);
+        document.getElementById('brush-label').textContent = this.value;
+    });
+
+    canvas.addEventListener('mousedown', e => { isDrawing = true; draw(e); });
+    canvas.addEventListener('mousemove', e => { if (isDrawing) draw(e); });
+    canvas.addEventListener('mouseup', () => isDrawing = false);
+    canvas.addEventListener('mouseleave', () => isDrawing = false);
+
+    function draw(e) {
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        const cellSize = 10;
+        const col = Math.floor(x / cellSize);
+        const row = Math.floor(y / cellSize);
+
+        for (let dr = -brushSize + 1; dr < brushSize; dr++) {
+            for (let dc = -brushSize + 1; dc < brushSize; dc++) {
+                const nr = row + dr;
+                const nc = col + dc;
+                if (nr >= 0 && nr < 28 && nc >= 0 && nc < 28) {
+                    const dist = Math.sqrt(dr*dr + dc*dc);
+                    const alpha = Math.max(0, 1 - dist / brushSize);
+                    ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+                    ctx.fillRect(nc * cellSize, nr * cellSize, cellSize, cellSize);
+                }
+            }
+        }
+    }
+
+    function clearCanvas() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        document.getElementById('pred-digit').textContent = '?';
+        document.getElementById('pred-confidence').textContent = 'Draw a digit and click predict';
+        for (let i = 0; i < 10; i++) {
+            document.getElementById(`bar-${i}`).style.width = '0%';
+            document.getElementById(`bar-${i}`).classList.remove('top');
+            document.getElementById(`pct-${i}`).textContent = '0%';
+        }
+    }
+
+    function getPixels() {
+        // Downsample 280x280 canvas to 28x28
+        const offscreen = document.createElement('canvas');
+        offscreen.width = 28;
+        offscreen.height = 28;
+        const offCtx = offscreen.getContext('2d');
+        offCtx.drawImage(canvas, 0, 0, 28, 28);
+        const imageData = offCtx.getImageData(0, 0, 28, 28);
+        const pixels = [];
+        for (let i = 0; i < 784; i++) {
+            pixels.push(imageData.data[i * 4]); // red channel only
+        }
+        return pixels;
+    }
+
+    async function predict() {
+        const pixels = getPixels();
+        const response = await fetch('/predict', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ pixels })
+        });
+        const data = await response.json();
+
+        document.getElementById('pred-digit').textContent = data.prediction;
+        document.getElementById('pred-confidence').textContent = `${data.confidence}% confidence`;
+
+        const maxProb = Math.max(...data.probabilities);
+        for (let i = 0; i < 10; i++) {
+            const bar = document.getElementById(`bar-${i}`);
+            bar.style.width = `${data.probabilities[i]}%`;
+            bar.classList.toggle('top', data.probabilities[i] === maxProb);
+            document.getElementById(`pct-${i}`).textContent = `${data.probabilities[i]}%`;
+        }
+    }
+
+    function getSettings() {
+        const layers = parseInt(document.getElementById('s-layers').value);
+        const n = [784];
+        for (let i = 1; i <= layers; i++) {
+            const input = document.getElementById(`s-n${i}`);
+            n.push(input ? parseInt(input.value) : 64);
+        }
+        n.push(10);
+        return {
+            epochs: parseInt(document.getElementById('s-epochs').value),
+            batch_size: parseInt(document.getElementById('s-batch').value),
+            alpha: parseFloat(document.getElementById('s-alpha').value),
+            decay_rate: parseFloat(document.getElementById('s-decay').value),
+            dropout_rate: parseFloat(document.getElementById('s-dropout').value),
+            n: n,
+            L: layers + 1
+        };
+    }
+
+    let eventSource = null;
+
+    function startFresh() {
+        const settings = getSettings();
+        addLog('Starting training...');
+        setTrainingState(true);
+
+        eventSource = new EventSource('/train?' + new URLSearchParams({
+            settings: JSON.stringify(settings)
+        }));
+
+        // Send settings via fetch first
+        fetch('/train', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(settings)
+        }).then(response => {
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+
+            function read() {
+                reader.read().then(({ done, value }) => {
+                    if (done) return;
+                    const text = decoder.decode(value);
+                    const lines = text.split('\n');
+                    lines.forEach(line => {
+                        if (line.startsWith('data: ')) {
+                            const data = JSON.parse(line.slice(6));
+                            if (data.done) {
+                                addLog('Training complete! Weights saved.');
+                                setTrainingState(false);
+                            } else {
+                                updateStats(data);
+                            }
+                        }
+                    });
+                    read();
+                });
+            }
+            read();
+        });
+    }
+
+    async function loadWeights() {
+        const response = await fetch('/load_weights', { method: 'POST' });
+        const data = await response.json();
+        if (data.success) {
+            addLog(`Weights loaded! Test acc: ${data.test_acc}%`);
+            document.getElementById('stat-test-acc').textContent = `${data.test_acc}%`;
+        } else {
+            addLog(`Error: ${data.error}`);
+        }
+    }
+
+    function stopTraining() {
+        if (eventSource) eventSource.close();
+        setTrainingState(false);
+        addLog('Training stopped.');
+    }
+
+    function updateStats(data) {
+        document.getElementById('stat-epoch').textContent = `${data.epoch} / ${data.epochs}`;
+        document.getElementById('stat-cost').textContent = data.cost;
+        document.getElementById('stat-train-acc').textContent = `${data.train_acc}%`;
+        document.getElementById('stat-test-acc').textContent = `${data.test_acc}%`;
+        document.getElementById('progress').style.width = `${(data.epoch / data.epochs) * 100}%`;
+        addLog(`Epoch ${data.epoch} — cost: ${data.cost}, acc: ${data.train_acc}%`);
+    }
+
+    function setTrainingState(training) {
+        document.getElementById('btn-fresh').disabled = training;
+        document.getElementById('btn-load').disabled = training;
+        document.getElementById('btn-stop').disabled = !training;
+    }
+
+    function addLog(msg) {
+        const log = document.getElementById('log');
+        const line = document.createElement('div');
+        line.className = 'log-line active';
+        line.textContent = '> ' + msg;
+        log.appendChild(line);
+        log.scrollTop = log.scrollHeight;
+    }
+
+    function toggleSettings() {
+        const content = document.getElementById('settings-content');
+        const arrow = document.getElementById('settings-arrow');
+        content.classList.toggle('open');
+        arrow.textContent = content.classList.contains('open') ? '−' : '+';
+    }
+
+    // Dynamically update neuron inputs when layer count changes
+    document.getElementById('s-layers').addEventListener('input', function() {
+        const layers = parseInt(this.value);
+        const container = document.getElementById('neuron-inputs');
+        container.innerHTML = '';
+        for (let i = 1; i <= layers; i++) {
+            const defaults = [256, 128, 64, 64, 32, 32];
+            container.innerHTML += `
+                <div class="setting-row">
+                    <span class="setting-label">Layer ${i} neurons</span>
+                    <input class="setting-input" type="number" id="s-n${i}" value="${defaults[i-1] || 64}">
+                </div>`;
+        }
+    });
+</script>
+</body>
+</html>
